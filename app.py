@@ -6,7 +6,7 @@ import asyncio
 from weather import get_weather as gwf
 from tokens import tg_bot_token
 
-_executor = ThreadPoolExecutor(2)
+_executor = ThreadPoolExecutor(1)
 loop = asyncio.get_event_loop()
 
 bot = Bot(tg_bot_token)
