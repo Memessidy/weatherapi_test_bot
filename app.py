@@ -1,32 +1,31 @@
-from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
-from aiogram.utils import executor
-from concurrent.futures import ThreadPoolExecutor
-import asyncio
-from weather import get_weather as gwf
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from tokens import tg_bot_token
-
-_executor = ThreadPoolExecutor(1)
-loop = asyncio.get_event_loop()
-
-bot = Bot(tg_bot_token)
-dp = Dispatcher(bot)
+from weather import get_weather
 
 
-@dp.message_handler(commands=['start'])
-async def start_command(message: types.Message):
-    await message.reply("Вітаю! Бот запрацював!")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Бот працює!!!"
+    )
 
 
-@dp.message_handler()
-async def get_weather(message: types.Message):
+async def get_weather_from_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    city_name = update.message.text
     try:
-        result = await loop.run_in_executor(_executor, gwf, message.text)
-        print(result)
+        result = get_weather(city_name)
     except Exception as exc:
-        print(exc)
-    await message.reply(result)
-
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Введіть назву міста!")
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    application = ApplicationBuilder().token(tg_bot_token).build()
+    echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), get_weather_from_bot)
+
+    start_handler = CommandHandler('start', start)
+    application.add_handler(start_handler)
+    application.add_handler(echo_handler)
+
+    application.run_polling()
